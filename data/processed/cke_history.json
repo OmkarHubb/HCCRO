@@ -183,5 +183,177 @@
     "status": "SUCCESS",
     "utility_score": 1.0,
     "drei_score": 1.0
+  },
+  {
+    "record_id": "CKE_LOG_1788085184",
+    "timestamp": 1788085184.1872294,
+    "threats": [
+      "RESOURCE_DOS_SUSPECTED"
+    ],
+    "pace_state": "EMERGENCY",
+    "actions": [
+      "ENFORCE_PROCESS_QUOTA_ISOLATION",
+      "TRANSITION_PACE_EMERGENCY_SAFE_MODE"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 100.2313,
+    "drei_score": 1.2692
+  },
+  {
+    "record_id": "CKE_LOG_1788085184",
+    "timestamp": 1788085184.195971,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "ACTIVATE_FREQUENCY_HOPPING"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.3986,
+    "drei_score": 18.87
+  },
+  {
+    "record_id": "CKE_LOG_1788085184",
+    "timestamp": 1788085184.2179143,
+    "threats": [],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "MAINTAIN_NOMINAL_OPERATIONS"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.872,
+    "drei_score": 21.9
+  },
+  {
+    "record_id": "CKE_LOG_1788085184",
+    "timestamp": 1788085184.2370768,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "PRIMARY",
+    "actions": [],
+    "status": "SUCCESS",
+    "utility_score": 1.0,
+    "drei_score": 1.0
+  },
+  {
+    "record_id": "CKE_LOG_1788085284",
+    "satellite_id": "SAT_HCCRO_01",
+    "timestamp": 1788085284.1829717,
+    "threats": [
+      "RESOURCE_DOS_SUSPECTED"
+    ],
+    "pace_state": "EMERGENCY",
+    "actions": [
+      "TRIGGER_FREQUENCY_HOPPING",
+      "KILL_DoS_PROCESS",
+      "MIGRATE_TASK"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 100.231,
+    "drei_score": 1.2692
+  },
+  {
+    "record_id": "CKE_LOG_1788085284",
+    "satellite_id": "SAT_HCCRO_01",
+    "timestamp": 1788085284.210116,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "ALTERNATE",
+    "actions": [
+      "TRIGGER_FREQUENCY_HOPPING"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.3986,
+    "drei_score": 2.74
+  },
+  {
+    "record_id": "CKE_LOG_1788085284",
+    "satellite_id": "SAT_HCCRO_01",
+    "timestamp": 1788085284.2338634,
+    "threats": [],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "MAINTAIN_NOMINAL_OPERATIONS"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.872,
+    "drei_score": 21.9
+  },
+  {
+    "record_id": "CKE_LOG_1788085284",
+    "satellite_id": "SAT_HCCRO_01",
+    "timestamp": 1788085284.2599962,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "PRIMARY",
+    "actions": [],
+    "status": "SUCCESS",
+    "utility_score": 1.0,
+    "drei_score": 1.0
+  },
+  {
+    "record_id": "CKE_LOG_1788085319",
+    "satellite_id": "SAT_HCCRO_01",
+    "timestamp": 1788085319.593871,
+    "threats": [
+      "RESOURCE_DOS_SUSPECTED"
+    ],
+    "pace_state": "EMERGENCY",
+    "actions": [
+      "ACTIVATE_FREQUENCY_HOPPING",
+      "TRIGGER_FREQUENCY_HOPPING",
+      "ENFORCE_PROCESS_QUOTA_ISOLATION",
+      "KILL_DoS_PROCESS",
+      "MIGRATE_TASK"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 100.231,
+    "drei_score": 1.2692
+  },
+  {
+    "record_id": "CKE_LOG_1788085319",
+    "satellite_id": "SAT_HCCRO_01",
+    "timestamp": 1788085319.614652,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "ALTERNATE",
+    "actions": [
+      "ACTIVATE_FREQUENCY_HOPPING",
+      "TRIGGER_FREQUENCY_HOPPING"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.3986,
+    "drei_score": 2.74
+  },
+  {
+    "record_id": "CKE_LOG_1788085319",
+    "satellite_id": "SAT_HCCRO_01",
+    "timestamp": 1788085319.6380398,
+    "threats": [],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "MAINTAIN_NOMINAL_OPERATIONS"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.872,
+    "drei_score": 21.9
+  },
+  {
+    "record_id": "CKE_LOG_1788085319",
+    "satellite_id": "SAT_HCCRO_01",
+    "timestamp": 1788085319.6665826,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "PRIMARY",
+    "actions": [],
+    "status": "SUCCESS",
+    "utility_score": 1.0,
+    "drei_score": 1.0
   }
 ]

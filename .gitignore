@@ -27,12 +27,15 @@ wheels/
 venv/
 ENV/
 env/
-
 # IDE / Editor settings
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# Runtime database & log files
+data/processed/*.db
+data/processed/*.json
 
 # OS files
 .DS_Store
