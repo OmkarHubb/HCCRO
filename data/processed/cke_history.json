@@ -1,0 +1,187 @@
+[
+  {
+    "record_id": "CKE_LOG_1787921184",
+    "timestamp": 1787921184.8112864,
+    "threats": [],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "MAINTAIN_NOMINAL_OPERATIONS"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.8672,
+    "drei_score": 21.9
+  },
+  {
+    "record_id": "CKE_LOG_1787921211",
+    "timestamp": 1787921211.8421206,
+    "threats": [],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "MAINTAIN_NOMINAL_OPERATIONS"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.8672,
+    "drei_score": 21.9
+  },
+  {
+    "record_id": "CKE_LOG_1787921211",
+    "timestamp": 1787921211.84825,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "ALTERNATE",
+    "actions": [
+      "ACTIVATE_FREQUENCY_HOPPING"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.4011,
+    "drei_score": 2.74
+  },
+  {
+    "record_id": "CKE_LOG_1787921211",
+    "timestamp": 1787921211.8631716,
+    "threats": [
+      "GPS_SPOOFING_SUSPECTED"
+    ],
+    "pace_state": "ALTERNATE",
+    "actions": [
+      "SWITCH_TO_INERTIAL_NAV_FALLBACK"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.6385,
+    "drei_score": 2.744
+  },
+  {
+    "record_id": "CKE_LOG_1787921211",
+    "timestamp": 1787921211.8781984,
+    "threats": [
+      "RESOURCE_DOS_SUSPECTED"
+    ],
+    "pace_state": "EMERGENCY",
+    "actions": [
+      "ENFORCE_PROCESS_QUOTA_ISOLATION",
+      "TRANSITION_PACE_EMERGENCY_SAFE_MODE"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 100.3891,
+    "drei_score": 1.2692
+  },
+  {
+    "record_id": "CKE_LOG_1787921211",
+    "timestamp": 1787921211.8939354,
+    "threats": [],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "MAINTAIN_NOMINAL_OPERATIONS"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.8359,
+    "drei_score": 21.9
+  },
+  {
+    "record_id": "CKE_LOG_1787921223",
+    "timestamp": 1787921223.5512815,
+    "threats": [
+      "RESOURCE_DOS_SUSPECTED"
+    ],
+    "pace_state": "EMERGENCY",
+    "actions": [
+      "ENFORCE_PROCESS_QUOTA_ISOLATION",
+      "TRANSITION_PACE_EMERGENCY_SAFE_MODE"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 100.2313,
+    "drei_score": 1.2692
+  },
+  {
+    "record_id": "CKE_LOG_1787921223",
+    "timestamp": 1787921223.5573828,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "ALTERNATE",
+    "actions": [
+      "ACTIVATE_FREQUENCY_HOPPING"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.3986,
+    "drei_score": 2.74
+  },
+  {
+    "record_id": "CKE_LOG_1787921223",
+    "timestamp": 1787921223.5775251,
+    "threats": [],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "MAINTAIN_NOMINAL_OPERATIONS"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.872,
+    "drei_score": 21.9
+  },
+  {
+    "record_id": "CKE_LOG_1787921223",
+    "timestamp": 1787921223.5863113,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "PRIMARY",
+    "actions": [],
+    "status": "SUCCESS",
+    "utility_score": 1.0,
+    "drei_score": 1.0
+  },
+  {
+    "record_id": "CKE_LOG_1787921245",
+    "timestamp": 1787921245.5848796,
+    "threats": [
+      "RESOURCE_DOS_SUSPECTED"
+    ],
+    "pace_state": "EMERGENCY",
+    "actions": [
+      "ENFORCE_PROCESS_QUOTA_ISOLATION",
+      "TRANSITION_PACE_EMERGENCY_SAFE_MODE"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 100.2313,
+    "drei_score": 1.2692
+  },
+  {
+    "record_id": "CKE_LOG_1787921245",
+    "timestamp": 1787921245.5916321,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "ALTERNATE",
+    "actions": [
+      "ACTIVATE_FREQUENCY_HOPPING"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.3986,
+    "drei_score": 2.74
+  },
+  {
+    "record_id": "CKE_LOG_1787921245",
+    "timestamp": 1787921245.6161356,
+    "threats": [],
+    "pace_state": "PRIMARY",
+    "actions": [
+      "MAINTAIN_NOMINAL_OPERATIONS"
+    ],
+    "status": "SUCCESS",
+    "utility_score": 0.872,
+    "drei_score": 21.9
+  },
+  {
+    "record_id": "CKE_LOG_1787921245",
+    "timestamp": 1787921245.634996,
+    "threats": [
+      "RF_JAMMING_SUSPECTED"
+    ],
+    "pace_state": "PRIMARY",
+    "actions": [],
+    "status": "SUCCESS",
+    "utility_score": 1.0,
+    "drei_score": 1.0
+  }
+]
