@@ -36,6 +36,7 @@ env/
 # Runtime database & log files
 data/processed/*.db
 *.db
+*.db-journal
 results/
 
 # OS files
