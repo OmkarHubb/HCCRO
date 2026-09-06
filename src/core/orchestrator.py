@@ -45,10 +45,18 @@ class HCCROOrchestrator:
         self.stage7_heal = Stage7Healing()
         self.stage8_cke = CyberKnowledgeEvolution()
 
-    def execute_pipeline(self, raw_telemetry: Union[TelemetryData, Dict[str, Any]]) -> Dict[str, Any]:
+    def execute_pipeline(self, raw_telemetry: Union[TelemetryData, Dict[str, Any], None] = None, telemetry_data: Union[TelemetryData, Dict[str, Any], None] = None) -> Dict[str, Any]:
         """
         Executes one complete iteration of the 8-stage cognitive resilience loop using strongly-typed dataclasses.
-        
+        """
+        data = raw_telemetry if raw_telemetry is not None else telemetry_data
+        return self._run_pipeline_impl(data)
+
+    # Alias for pipeline execution
+    run_pipeline = execute_pipeline
+
+    def _run_pipeline_impl(self, raw_telemetry: Union[TelemetryData, Dict[str, Any]]) -> Dict[str, Any]:
+        """
         Args:
             raw_telemetry: TelemetryData object or raw data dictionary.
             

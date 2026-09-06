@@ -32,6 +32,122 @@ class DefaultTelemetryParser(BaseTelemetryParser):
         return TelemetryData.from_dict(raw_input)
 
 
+class SlidingWindowTelemetryParser(BaseTelemetryParser):
+    """
+    MODULE 4 — Sliding temporal window telemetry parser.
+    
+    Maintains a circular buffer of the last W telemetry readings and computes
+    rolling statistics (mean, variance, delta-change-rate) for key metrics:
+    PDR, spectrum_usage, processor_utilization, navigation_consistency.
+    
+    These windowed features provide anomaly confidence scoring to the CSA
+    normalization engine — a sudden spike in variance or delta-rate indicates
+    a transient attack rather than a steady-state degradation.
+    
+    Paper Reference: Stage 1 CSA — "confidence and uncertainty associated
+    with observed cyber events" requires temporal context beyond single-point
+    readings.
+    """
+
+    # Tracked metrics for rolling statistics
+    TRACKED_KEYS = [
+        "packet_delivery_ratio", "spectrum_usage",
+        "processor_utilization", "navigation_consistency",
+    ]
+
+    def __init__(self, window_size: int = 10):
+        self.window_size = window_size
+        # Circular buffer: list of dicts, newest at end
+        self._buffer: list = []
+
+    def parse(self, raw_input: Dict[str, Any]) -> TelemetryData:
+        """Parses raw input AND updates the sliding window buffer."""
+        telemetry = TelemetryData.from_dict(raw_input)
+        # Store a snapshot of tracked metrics
+        snapshot = {
+            "packet_delivery_ratio": telemetry.packet_delivery_ratio,
+            "spectrum_usage": telemetry.spectrum_usage,
+            "processor_utilization": telemetry.processor_utilization,
+            "navigation_consistency": telemetry.navigation_consistency,
+        }
+        self._buffer.append(snapshot)
+        if len(self._buffer) > self.window_size:
+            self._buffer.pop(0)
+        return telemetry
+
+    # Alias for parse method
+    push = parse
+
+    def get_windowed_features(self) -> Dict[str, Dict[str, float]]:
+        """
+        Computes rolling mean, variance, and delta-change-rate for each
+        tracked metric over the current window buffer.
+        
+        Returns:
+            Dict keyed by metric name, each containing:
+            - 'mean': rolling average over the window
+            - 'variance': rolling variance (population) over the window
+            - 'delta_rate': absolute change rate = |current - previous| / dt
+            - 'window_fill': fraction of window buffer that is populated (0..1)
+        """
+        n = len(self._buffer)
+        if n == 0:
+            return {k: {"mean": 0.0, "variance": 0.0, "delta_rate": 0.0, "window_fill": 0.0}
+                    for k in self.TRACKED_KEYS}
+
+        features = {}
+        fill_ratio = n / self.window_size
+
+        for key in self.TRACKED_KEYS:
+            values = [snap[key] for snap in self._buffer]
+            mean_val = sum(values) / n
+            var_val = sum((v - mean_val) ** 2 for v in values) / n
+            # Delta-rate: absolute difference between last two readings
+            if n >= 2:
+                delta = abs(values[-1] - values[-2])
+            else:
+                delta = 0.0
+            features[key] = {
+                "mean": round(mean_val, 6),
+                "variance": round(var_val, 6),
+                "delta_rate": round(delta, 6),
+                "window_fill": round(fill_ratio, 2),
+            }
+        return features
+
+    def get_anomaly_confidence(self) -> float:
+        """
+        Computes a composite anomaly confidence score [0.0, 1.0] based on
+        windowed statistics. High variance + high delta_rate in PDR or
+        spectrum_usage increases confidence that an active attack is occurring.
+        """
+        feats = self.get_windowed_features()
+        if feats["packet_delivery_ratio"]["window_fill"] < 0.3:
+            return 0.5  # Insufficient data — neutral confidence
+
+        # Weighted composite: variance spikes and delta-rate spikes indicate attacks
+        pdr_var = feats["packet_delivery_ratio"]["variance"]
+        spec_var = feats["spectrum_usage"]["variance"]
+        cpu_delta = feats["processor_utilization"]["delta_rate"]
+        nav_delta = feats["navigation_consistency"]["delta_rate"]
+
+        # Normalize each component to [0,1] range with empirical scaling
+        conf = min(1.0, (
+            0.30 * min(1.0, pdr_var / 0.05) +       # PDR variance (nominal ~0.001)
+            0.25 * min(1.0, spec_var / 0.05) +       # Spectrum variance
+            0.25 * min(1.0, cpu_delta / 30.0) +      # CPU delta (nominal <2%)
+            0.20 * min(1.0, nav_delta / 10.0)        # Nav drift delta (nominal <1m)
+        ))
+        return round(conf, 4)
+
+    # Alias for get_anomaly_confidence
+    compute_anomaly_confidence = get_anomaly_confidence
+
+    def reset(self) -> None:
+        """Clears the window buffer."""
+        self._buffer.clear()
+
+
 class CyberSituationAwareness(BaseStage):
     """
     Stage 1: Cyber Situation Awareness (CSA) Engine.
@@ -41,6 +157,8 @@ class CyberSituationAwareness(BaseStage):
     def __init__(self, parser: Optional[BaseTelemetryParser] = None):
         super().__init__(name="Stage1_CSA")
         self.parser = parser or DefaultTelemetryParser()
+        # MODULE 4: Optional sliding window for temporal enrichment
+        self.sliding_window = SlidingWindowTelemetryParser()
 
     @staticmethod
     def _clip(value: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
@@ -119,8 +237,15 @@ class CyberSituationAwareness(BaseStage):
         Returns:
             StateVectorData: Normalized S_t state vector.
         """
-        if isinstance(input_data, dict):
+        if input_data is None:
+            telemetry = TelemetryData()
+        elif isinstance(input_data, dict):
+            if "S_t" in input_data and isinstance(input_data["S_t"], StateVectorData):
+                # Direct real-world GNSS parsed state vector
+                return input_data["S_t"]
             telemetry = self.parser.parse(input_data)
+            # MODULE 4: Also feed through sliding window for temporal context
+            self.sliding_window.parse(input_data)
         else:
             telemetry = input_data
 

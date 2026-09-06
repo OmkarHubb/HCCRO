@@ -153,11 +153,36 @@ class CyberKnowledgeEvolution(BaseStage):
 
             conn.commit()
             conn.close()
-            logger.info("[Stage 8 CKE] Persisted incident cycle '%s' to SQLite database.", cycle_id)
             return True
         except Exception as err:
-            logger.error("[Stage 8 CKE] SQLite log_incident_cycle error: %s", err)
+            logger.error("[Stage 8 CKE] Database persistence failure: %s", err)
             return False
+
+    def log_incident(
+        self,
+        record_id: str,
+        s_t: StateVectorData,
+        actions: list,
+        pace_state: Any,
+        utility_score: float = 0.8,
+        drei_score: float = 0.8,
+        status: str = "SUCCESS",
+    ) -> bool:
+        """Helper method to directly persist incident records into the CKE database."""
+        return self.log_incident_cycle(
+            cycle_id=record_id,
+            satellite_id="SAT_DEFAULT",
+            timestamp=s_t.timestamp,
+            sensor_metrics={},
+            attack_intent=",".join(s_t.active_threats) or "NONE",
+            dcs_mos_weights={},
+            previous_pace_mode=str(pace_state),
+            target_pace_mode=str(pace_state),
+            executed_action=",".join(actions),
+            drei_score=drei_score,
+            mci_score=0.0,
+            status=status,
+        )
 
     def get_historical_success_rate(
         self, attack_intent: str, mitigation_action: str
@@ -208,6 +233,163 @@ class CyberKnowledgeEvolution(BaseStage):
             logger.warning("[Stage 8 CKE] Query historical success rate warning: %s", err)
 
         return 0.95  # Nominal high fallback success rate
+
+    # =================================================================
+    # MODULE 3: Closed-Loop Adaptive Learning Engine
+    # These methods transform CKE from a passive logger into an active
+    # onboard learning engine, closing the cognitive feedback loop per
+    # the paper's requirement that "every attack, defense action,
+    # optimization decision, mission outcome, and recovery process
+    # should contribute to an evolving cyber knowledge base."
+    # =================================================================
+
+    def query_action_success_rate(
+        self, action_key: str, threat_context: str = "ALL"
+    ) -> float:
+        """
+        Queries the SQLite database for the historical success rate of a
+        specific healing action under a specific threat context.
+        
+        Paper Reference: CKE — "resilience effectiveness, recovery strategies,
+        mission outcomes, optimization experiences"
+        
+        Args:
+            action_key: The actuator action identifier (e.g., "TRIGGER_FREQUENCY_HOPPING").
+            threat_context: The threat type/intent string (e.g., "RF_JAMMING_SUSPECTED").
+            
+        Returns:
+            float: Success rate [0.0, 1.0]. Returns 0.5 if no historical data exists.
+        """
+        try:
+            conn = sqlite3.connect(str(self.sqlite_file))
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM incident_history
+                WHERE executed_action LIKE ? AND attack_intent LIKE ? AND status = 'SUCCESS'
+                """,
+                (f"%{action_key}%", f"%{threat_context}%"),
+            )
+            success_count = cursor.fetchone()[0]
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM incident_history
+                WHERE executed_action LIKE ? AND attack_intent LIKE ?
+                """,
+                (f"%{action_key}%", f"%{threat_context}%"),
+            )
+            total_count = cursor.fetchone()[0]
+
+            conn.close()
+
+            if total_count == 0:
+                return 0.5  # No prior data — neutral prior
+            return round(float(success_count) / float(total_count), 4)
+
+        except Exception as err:
+            logger.warning("[CKE] query_action_success_rate error: %s", err)
+            return 0.5
+
+    def compute_adaptive_transition_probs(
+        self, available_actions: list, threat_context: str
+    ) -> Dict[str, float]:
+        """
+        Computes modified MDP transition probabilities for each available
+        healing action, proportional to its historical success rate.
+        
+        Actions with high historical success get boosted transition probability
+        toward nominal states; actions with low success get decayed probability.
+        
+        Paper Reference: CKE → Stage 6 MDP feedback — "improve future threat
+        prediction, resilience optimization, and autonomous decision-making"
+        
+        Args:
+            available_actions: List of candidate healing actions.
+            threat_context: Current threat profile string.
+            
+        Returns:
+            Dict mapping action_key → transition probability [0.0, 1.0].
+        """
+        if not available_actions:
+            return {}
+
+        probs = {}
+        total_weight = 0.0
+        for action in available_actions:
+            sr = self.query_action_success_rate(action, threat_context)
+            # Exponential boosting: high success → high weight, low success → low weight
+            weight = max(0.01, sr ** 1.5)  # Power-law favoring high-success actions
+            probs[action] = weight
+            total_weight += weight
+
+        # Normalize to sum to 1.0
+        if total_weight > 0:
+            for action in probs:
+                probs[action] = round(probs[action] / total_weight, 4)
+
+        return probs
+
+    def compute_adaptive_epsilon(self, threat_context: str) -> float:
+        """
+        Computes a dynamic epsilon (exploration rate) for the MDP solver
+        based on the novelty of the current threat context.
+        
+        Logic:
+        - If threat context has many prior incidents → low epsilon (exploit known-good paths)
+        - If threat context is novel (few/no prior incidents) → high epsilon (explore alternatives)
+        
+        Paper Reference: CKE — "continual learning mechanism" that
+        "progressively improve[s] resilience capabilities across successive missions"
+        
+        Args:
+            threat_context: Current threat profile string.
+            
+        Returns:
+            float: Adaptive epsilon value [0.0, 0.5].
+        """
+        novelty = self.get_novelty_score(threat_context)
+        # Map novelty to epsilon: highly novel → epsilon = 0.5 (max exploration)
+        # Well-known → epsilon = 0.02 (near-pure exploitation)
+        epsilon = 0.02 + 0.48 * novelty
+        return round(min(0.5, max(0.0, epsilon)), 4)
+
+    def get_novelty_score(self, threat_context: str) -> float:
+        """
+        Computes a novelty score [0.0, 1.0] for the current threat context
+        by counting how many prior incidents match this profile.
+        
+        Fewer matches = higher novelty. Uses an exponential decay curve:
+        novelty = exp(-count / decay_constant).
+        
+        Args:
+            threat_context: Current threat profile string.
+            
+        Returns:
+            float: Novelty score [0.0, 1.0]. 1.0 = completely novel, 0.0 = well-known.
+        """
+        import math
+        try:
+            conn = sqlite3.connect(str(self.sqlite_file))
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM incident_history WHERE attack_intent LIKE ?",
+                (f"%{threat_context}%",),
+            )
+            count = cursor.fetchone()[0]
+            conn.close()
+
+            # Exponential decay: novelty → 0 as count grows
+            # decay_constant = 10 incidents → novelty drops to ~0.37
+            decay_constant = 10.0
+            novelty = math.exp(-float(count) / decay_constant)
+            return round(novelty, 4)
+
+        except Exception as err:
+            logger.warning("[CKE] get_novelty_score error: %s", err)
+            return 1.0  # Assume novel on error
 
     def execute(self, input_data: Dict[str, Any]) -> CKEOutput:
         """
@@ -300,5 +482,6 @@ class CyberKnowledgeEvolution(BaseStage):
         }
 
 
-# Backward compatibility alias
+# Backward compatibility aliases
 Stage8CKE = CyberKnowledgeEvolution
+CognitiveKnowledgeEngine = CyberKnowledgeEvolution

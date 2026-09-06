@@ -21,8 +21,11 @@ from src.core.interfaces import BaseStage, StateVectorData, MIAOutput, Optimizat
 from config.settings import settings
 from src.utils.metrics_tracker import MetricsTracker
 from src.utils.logger import get_logger
+from src.optimization.constrained_solver import ConstrainedResilienceSolver
 
 logger = get_logger("Stage6.Optimization")
+
+# Existing classes AdaptiveWeightController, PaceMdpSolver, AFSBiddingEngine remain...
 
 
 class AdaptiveWeightController:
@@ -235,6 +238,13 @@ class Stage6ResilienceOptimizer(BaseStage):
         super().__init__(name="Stage6_Optimization")
         self.mdp_solver = PaceMdpSolver()
         self.afs_engine = AFSBiddingEngine()
+        self.constrained_solver = ConstrainedResilienceSolver()
+        self.cke_weight_overrides: Dict[str, float] = {}
+
+    def apply_cke_weight_updates(self, weight_updates: Dict[str, float]) -> None:
+        """Applies adaptive weight modifications passed back from Stage 8 CKE feedback loop."""
+        self.cke_weight_overrides.update(weight_updates)
+        logger.info("[Stage 6 Optimization] Applied CKE adaptive weight overrides: %s", self.cke_weight_overrides)
 
     def execute(self, input_data: Dict[str, Any]) -> OptimizationOutput:
         """
@@ -258,11 +268,23 @@ class Stage6ResilienceOptimizer(BaseStage):
             cpu_load = max(cpu_load, 0.85)
 
         raw_weights = AdaptiveWeightController.compute_weights(s_t.E, cpu_load=cpu_load)
+        
+        # Apply CKE feedback overrides if present
+        if self.cke_weight_overrides:
+            for k, v in self.cke_weight_overrides.items():
+                if k in raw_weights:
+                    raw_weights[k] = round(raw_weights[k] * v, 4)
+
         norm_weights = AdaptiveWeightController.get_normalized_weights(raw_weights)
 
-        # 2. Compute Multi-Objective Utility Function score U
+        # 2. Non-Linear Constrained SLSQP Optimization (MODULE 2)
+        self.constrained_solver.set_weights(raw_weights)
+        opt_res = self.constrained_solver.solve(s_t)
+        resource_alloc = opt_res.x_opt
+
+        # 3. Compute Multi-Objective Utility Function score U
         h_val = 1.0 if s_t.active_threats else 0.8
-        utility = (
+        utility = opt_res.utility_value if opt_res.utility_value > 0 else (
             raw_weights["alpha_R"] * s_t.R
             + raw_weights["beta_M"] * s_t.M
             + raw_weights["gamma_T"] * s_t.T
@@ -271,12 +293,12 @@ class Stage6ResilienceOptimizer(BaseStage):
         )
         utility = round(utility, 4)
 
-        # 3. MDP Policy Solver for PACE State Selection
+        # 4. MDP Policy Solver for PACE State Selection
         target_pace_state, reward = self.mdp_solver.solve_optimal_transition(
             s_t.pace_state, s_t, mia.threat_adjusted_utilities
         )
 
-        # 4. Action Selection & Countermeasure Mapping (Supports legacy and new action keys)
+        # 5. Action Selection & Countermeasure Mapping (Supports legacy and new action keys)
         actions = []
         if "RF_JAMMING_SUSPECTED" in s_t.active_threats or "RF_JAMMING_DISRUPTION" in s_t.active_threats or s_t.C < 0.5 or s_t.Q < 0.5:
             actions.append("ACTIVATE_FREQUENCY_HOPPING")
@@ -291,7 +313,7 @@ class Stage6ResilienceOptimizer(BaseStage):
         # Deduplicate actions preserving order
         actions = list(dict.fromkeys(actions))
 
-        # 5. Assistance Feasibility Score (AFS) Workload Bidding Offload check
+        # 6. Assistance Feasibility Score (AFS) Workload Bidding Offload check
         if cpu_load > 0.70 or "RESOURCE_DOS_SUSPECTED" in s_t.active_threats:
             best_peer, afs_score = self.afs_engine.evaluate_afs_bidding(local_cpu_load=cpu_load)
             if best_peer:
@@ -301,7 +323,7 @@ class Stage6ResilienceOptimizer(BaseStage):
         if not actions:
             actions.append("MAINTAIN_NOMINAL_OPERATIONS")
 
-        # 6. Dynamic Redundancy Efficiency Index (DREI) calculation
+        # 7. Dynamic Redundancy Efficiency Index (DREI) calculation
         occupancy_probs = {
             PaceState.PRIMARY.value: 0.8 if target_pace_state == PaceState.PRIMARY else 0.1,
             PaceState.ALTERNATE.value: 0.8 if target_pace_state == PaceState.ALTERNATE else 0.1,
@@ -321,7 +343,9 @@ class Stage6ResilienceOptimizer(BaseStage):
             utility_score=utility,
             drei_score=drei_score,
             weights_applied=raw_weights,
+            resource_allocation=resource_alloc,
         )
+
 
     def process(self, state: Any, impact_metrics: Dict[str, Any]) -> Dict[str, Any]:
         """Backward compatibility bridge returning dictionary representation."""

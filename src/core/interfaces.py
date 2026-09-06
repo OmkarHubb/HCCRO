@@ -148,6 +148,11 @@ class CTIGOutput:
     compromised_nodes: List[str]
     healthy_nodes: List[str]
     num_edges: int
+    # MODULE 4: PageRank centrality scores keyed by node id
+    centrality_scores: Dict[str, float] = field(default_factory=dict)
+    # MODULE 4: Vulnerable routing corridors identified by Dijkstra shortest-path
+    # Each entry: {"threat_source": str, "path": List[str], "path_weight": float}
+    critical_corridors: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -185,6 +190,11 @@ class OptimizationOutput:
     utility_score: float
     drei_score: float
     weights_applied: Dict[str, float]
+    # MODULE 2: Resource allocation decision vector from constrained SLSQP solver
+    # Keys: cpu_security, cpu_payload, power_security, power_payload, bw_security, bw_payload
+    resource_allocation: Dict[str, float] = field(default_factory=dict)
+    # MODULE 2: Whether constraints were satisfied by the solver
+    constraints_satisfied: bool = True
 
 
 @dataclass

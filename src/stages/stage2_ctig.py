@@ -269,11 +269,48 @@ class CognitiveThreatIntelligenceGraph(BaseStage):
             if d.get("status") == "HEALTHY" and d.get("type") != NODE_TYPE_THREAT
         ]
 
+        # -----------------------------------------------------------------
+        # MODULE 4: Compute PageRank Centrality for SPOF analysis
+        # Identifies which nodes are most critical to overall graph connectivity.
+        # High-centrality compromised nodes represent severe single-points-of-failure.
+        # -----------------------------------------------------------------
+        centrality_scores = self._compute_pagerank_centrality(graph)
+
+        # -----------------------------------------------------------------
+        # MODULE 4: Dijkstra Attack Path Analysis — Critical Corridors
+        # For each active THREAT node, compute shortest reachable paths to
+        # all critical SERVICE and SATELLITE nodes. These paths represent
+        # vulnerable routing corridors that Stage 5 (MIA) and Stage 6 (OPT)
+        # can use to block or re-route around compromised routes.
+        # -----------------------------------------------------------------
+        critical_corridors = []
+        threat_nodes = [
+            n for n, d in graph.nodes(data=True) if d.get("type") == NODE_TYPE_THREAT
+        ]
+        for threat_node in threat_nodes:
+            paths = self._analyze_attack_paths(graph, threat_node)
+            for path in paths:
+                # Compute total path weight (sum of inverse edge weights = attack cost)
+                path_weight = 0.0
+                for i in range(len(path) - 1):
+                    edge_data = graph.get_edge_data(path[i], path[i + 1], default={})
+                    path_weight += 1.0 / max(0.01, edge_data.get("weight", 1.0))
+                critical_corridors.append({
+                    "threat_source": threat_node,
+                    "target": path[-1] if path else "",
+                    "path": path,
+                    "path_weight": round(path_weight, 4),
+                })
+        if critical_corridors:
+            logger.info("[CTIG] Identified %d critical attack corridors via Dijkstra analysis.", len(critical_corridors))
+
         return CTIGOutput(
             graph=graph,
             compromised_nodes=compromised,
             healthy_nodes=healthy,
             num_edges=graph.number_of_edges(),
+            centrality_scores=centrality_scores,
+            critical_corridors=critical_corridors,
         )
 
     # =========================================================================

@@ -118,6 +118,104 @@ class SelfHealingActuator:
             active_threats=remaining_threats,
         )
 
+    # =================================================================
+    # MODULE 4: Topology-Altering Actuators
+    # These actuators modify the NetworkX graph structure to implement
+    # the paper's Distributed Self-Healing requirement for compromised
+    # satellite isolation and trusted route reconstruction.
+    # =================================================================
+
+    @staticmethod
+    def isolate_compromised_node(graph: 'nx.DiGraph', node_id: str) -> List[tuple]:
+        """
+        Temporarily drops ALL active communication edges connected to the
+        compromised satellite node in the CTIG graph. This prevents lateral
+        threat propagation through the compromised node.
+        
+        Paper Reference: Stage 7 DSH — "compromised satellite isolation"
+        
+        Args:
+            graph: NetworkX DiGraph (the CTIG constellation graph).
+            node_id: ID of the satellite/node to isolate.
+            
+        Returns:
+            List of removed edges (u, v, data) for potential later restoration.
+        """
+        import networkx as nx
+        removed_edges = []
+        if not graph.has_node(node_id):
+            return removed_edges
+
+        # Collect all edges touching this node
+        edges_to_remove = []
+        for u, v, data in graph.edges(data=True):
+            if u == node_id or v == node_id:
+                # Only remove communication edges, keep DEPENDS_ON for internal services
+                relation = data.get("relation", "")
+                if relation in ("COMMUNICATES_WITH", "communication_link", "TRUSTS", ""):
+                    edges_to_remove.append((u, v, dict(data)))
+
+        for u, v, data in edges_to_remove:
+            graph.remove_edge(u, v)
+            removed_edges.append((u, v, data))
+
+        # Mark node as ISOLATED
+        if graph.has_node(node_id):
+            graph.nodes[node_id]["status"] = "ISOLATED"
+
+        logger.info("[Stage 7 Actuator] ISOLATED node '%s': removed %d communication edges.",
+                    node_id, len(removed_edges))
+        return removed_edges
+
+    @staticmethod
+    def reconstruct_trusted_route(
+        graph: 'nx.DiGraph', source: str, destination: str
+    ) -> Optional[List[str]]:
+        """
+        Dynamically rebuilds the routing path between source and destination
+        across remaining uncompromised nodes using Dijkstra shortest path
+        weighted by inverse edge trust/quality.
+        
+        Paper Reference: Stage 7 DSH — "trusted route reconstruction"
+        
+        Args:
+            graph: NetworkX DiGraph (the CTIG constellation graph).
+            source: Source satellite node ID.
+            destination: Destination satellite node ID.
+            
+        Returns:
+            List of node IDs forming the reconstructed trusted route,
+            or None if no path exists through healthy nodes.
+        """
+        import networkx as nx
+        if not graph.has_node(source) or not graph.has_node(destination):
+            return None
+
+        # Build a subgraph containing only HEALTHY and non-ISOLATED nodes
+        healthy_nodes = [
+            n for n, d in graph.nodes(data=True)
+            if d.get("status") not in ("COMPROMISED", "DEGRADED", "ISOLATED")
+               and d.get("type") != "THREAT_INDICATOR"
+        ]
+        # Always include source and destination even if degraded
+        for node in [source, destination]:
+            if node not in healthy_nodes and graph.has_node(node):
+                healthy_nodes.append(node)
+
+        subgraph = graph.subgraph(healthy_nodes)
+
+        try:
+            # Use inverse weight as distance (lower trust = higher cost)
+            def weight_fn(u, v, data):
+                return 1.0 / max(0.01, data.get("weight", 1.0))
+
+            path = nx.dijkstra_path(subgraph, source, destination, weight=weight_fn)
+            logger.info("[Stage 7 Actuator] Reconstructed trusted route: %s", " -> ".join(path))
+            return path
+        except (nx.NetworkXNoPath, nx.NodeNotFound):
+            logger.warning("[Stage 7 Actuator] No trusted route found from '%s' to '%s'.", source, destination)
+            return None
+
 
 class DistributedSelfHealing(BaseStage):
     """

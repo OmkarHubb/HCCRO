@@ -35,7 +35,8 @@ env/
 
 # Runtime database & log files
 data/processed/*.db
-data/processed/*.json
+*.db
+results/
 
 # OS files
 .DS_Store
