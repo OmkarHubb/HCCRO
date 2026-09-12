@@ -1,8 +1,8 @@
 ==========================================================================================
   HCCRO EMPIRICAL METRICS — COMPREHENSIVE EVALUATION SUMMARY
 ==========================================================================================
-  Execution Timestamp   : 2026-09-12T10:46:18+0530
-  Total Execution Time  : 112.08 seconds
+  Execution Timestamp   : 2026-09-12T11:05:54+0530
+  Total Execution Time  : 73.38 seconds
   Datasets Evaluated    : 2
     - ESA OPSSAT-AD (data/processed/dataset.csv)
     - Mendeley GNSS (data/raw/satelliteInfomation21.json + pvtSolution21.json)
@@ -32,20 +32,20 @@
   False Negative Rate (FNR): 0.000000  (0.00%)
   ROC-AUC                  : 1.000000
 
-  MTTD (Detection Delay)   : 18.4503 ms
-  MTTR (Time to Respond)   : 0.0588 ms
-  MTTRc (Time to Recover)  : 0.2867 ms
-  End-to-End Delay         : 52.7153 ms
-  Communication Latency    : 7.9073 ms
+  MTTD (Detection Delay)   : 12.0800 ms
+  MTTR (Time to Respond)   : 0.0374 ms
+  MTTRc (Time to Recover)  : 0.1821 ms
+  End-to-End Delay         : 34.5143 ms
+  Communication Latency    : 5.1771 ms
 
-  Network Throughput       : 18.94 segments/sec
+  Network Throughput       : 28.93 segments/sec
   Packet Delivery Ratio    : 1.000000
-  Energy (CPU-s/1000 ep)   : 114.5637 s
+  Energy (CPU-s/1000 ep)   : 92.1455 s
 
-  Mean CPU Utilization     : 89.59%
-  Peak CPU Utilization     : 97.00%
-  Mean RAM Footprint       : 174.34 MB
-  Peak RAM Footprint       : 175.13 MB
+  Mean CPU Utilization     : 88.60%
+  Peak CPU Utilization     : 98.30%
+  Mean RAM Footprint       : 174.10 MB
+  Peak RAM Footprint       : 174.88 MB
 
   Trust Score (Mean T_t)   : 0.752345
   Mission Completion Rate  : 0.482336  (48.23%)
@@ -80,14 +80,14 @@
 ------------------------------------------------------------------------------------------
   STAGE TIMING BREAKDOWN
 ------------------------------------------------------------------------------------------
-  Stage 1 Ingestion  (mean): 0.0007 ms
-  Stage 3 Detection  (mean): 18.4503 ms
-  Stage 7 Actuator   (mean): 0.0588 ms
-  End-to-End         (mean): 52.7153 ms
-  End-to-End         (P50) : 46.1574 ms
-  End-to-End         (P95) : 111.4702 ms
-  End-to-End         (P99) : 137.6343 ms
-  End-to-End         (Max) : 184.2757 ms
+  Stage 1 Ingestion  (mean): 0.0005 ms
+  Stage 3 Detection  (mean): 12.0800 ms
+  Stage 7 Actuator   (mean): 0.0374 ms
+  End-to-End         (mean): 34.5143 ms
+  End-to-End         (P50) : 31.4792 ms
+  End-to-End         (P95) : 67.5065 ms
+  End-to-End         (P99) : 84.6172 ms
+  End-to-End         (Max) : 157.4559 ms
 
 ==========================================================================================
   EVALUATION COMPLETE — ALL METRICS COMPUTED FROM LIVE EXECUTION
