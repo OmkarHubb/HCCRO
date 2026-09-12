@@ -46,6 +46,10 @@ class AdaptiveWeightController:
         - If cpu_load > 0.70 (70% CPU usage / DoS):
           - Mission weight beta quadratically drops.
           - Self-healing weight lambda spikes up.
+        - If TELECOMMAND_INJECTION_SUSPECTED active AND (A_t < 0.50 OR T_t < 0.60):
+          - delta (communication) → 0.05
+          - gamma (trust) → 0.80
+          - lambda (self-healing) → 0.55
         """
         alpha = float(settings.WEIGHT_R_RESILIENCE)
         beta = float(settings.WEIGHT_M_MISSION)
@@ -82,6 +86,34 @@ class AdaptiveWeightController:
             "delta_C": delta,
             "lambda_H": lambd,
         }
+
+    @staticmethod
+    def apply_telecommand_injection_overrides(
+        raw_weights: Dict[str, float], s_t: 'StateVectorData'
+    ) -> Dict[str, float]:
+        """
+        Applies DCS-MOS weight overrides when a telecommand injection attack
+        drops Autonomous Reliability (A_t < 0.50) or Trust State (T_t < 0.60).
+
+        Overrides:
+          - delta (communication) → 0.05  (suppress communication weight)
+          - gamma (trust) → 0.80         (elevate trust recovery weight)
+          - lambda (self-healing) → 0.55  (spike self-healing weight)
+        """
+        is_tc_attack = "TELECOMMAND_INJECTION_SUSPECTED" in s_t.active_threats
+        is_cadc_anomaly = "CADC_ANOMALY_SUSPECTED" in s_t.active_threats
+
+        if (is_tc_attack or is_cadc_anomaly) and (s_t.A < 0.50 or s_t.T < 0.60):
+            raw_weights["delta_C"] = 0.05
+            raw_weights["gamma_T"] = 0.80
+            raw_weights["lambda_H"] = 0.55
+            logger.warning(
+                "[AdaptiveWeightController] Telecommand Injection Override! "
+                "delta_C=0.05, gamma_T=0.80, lambda_H=0.55 (A_t=%.2f, T_t=%.2f)",
+                s_t.A, s_t.T,
+            )
+
+        return raw_weights
 
     @staticmethod
     def get_normalized_weights(raw_weights: Dict[str, float]) -> Dict[str, float]:
@@ -268,6 +300,9 @@ class Stage6ResilienceOptimizer(BaseStage):
             cpu_load = max(cpu_load, 0.85)
 
         raw_weights = AdaptiveWeightController.compute_weights(s_t.E, cpu_load=cpu_load)
+
+        # Apply OPSSAT-AD telecommand injection weight overrides
+        raw_weights = AdaptiveWeightController.apply_telecommand_injection_overrides(raw_weights, s_t)
         
         # Apply CKE feedback overrides if present
         if self.cke_weight_overrides:
@@ -309,6 +344,11 @@ class Stage6ResilienceOptimizer(BaseStage):
         if "RESOURCE_DOS_SUSPECTED" in s_t.active_threats or cpu_load > 0.70 or s_t.E < 0.30:
             actions.append("ENFORCE_PROCESS_QUOTA_ISOLATION")
             actions.append("KILL_DoS_PROCESS")
+
+        # OPSSAT-AD: Telecommand Injection countermeasure actions
+        if "TELECOMMAND_INJECTION_SUSPECTED" in s_t.active_threats or "CADC_ANOMALY_SUSPECTED" in s_t.active_threats:
+            actions.append("PURGE_MALICIOUS_APID_QUEUE")
+            actions.append("REVERT_TO_SAFE_TC_KEY_STORE")
 
         # Deduplicate actions preserving order
         actions = list(dict.fromkeys(actions))

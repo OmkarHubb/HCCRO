@@ -5,6 +5,7 @@ Inference engine predicting threat actor objectives:
 - RF_JAMMING_DISRUPTION
 - COMMAND_SPOOFING_TAKEOVER
 - RESOURCE_DENIAL_OF_SERVICE
+- PROTOCOL_TELECOMMAND_INJECTION  (ESA OPSSAT-AD campaign)
 
 Exposes an extensible PredictiveModelRegistry to register machine learning models
 with a structural graph topology fallback heuristic.
@@ -74,38 +75,64 @@ class BayesianIntentInference:
             "RF_JAMMING_DISRUPTION": 0.92,
             "COMMAND_SPOOFING_TAKEOVER": 0.15,
             "RESOURCE_DENIAL_OF_SERVICE": 0.08,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.10,
         },
         "GPS_SPOOFING_SUSPECTED": {
             "RF_JAMMING_DISRUPTION": 0.10,
             "COMMAND_SPOOFING_TAKEOVER": 0.88,
             "RESOURCE_DENIAL_OF_SERVICE": 0.12,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.15,
         },
         "RESOURCE_DOS_SUSPECTED": {
             "RF_JAMMING_DISRUPTION": 0.05,
             "COMMAND_SPOOFING_TAKEOVER": 0.20,
             "RESOURCE_DENIAL_OF_SERVICE": 0.95,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.12,
+        },
+        # OPSSAT-AD Telecommand Injection evidence keys
+        "TELECOMMAND_INJECTION_SUSPECTED": {
+            "RF_JAMMING_DISRUPTION": 0.05,
+            "COMMAND_SPOOFING_TAKEOVER": 0.25,
+            "RESOURCE_DENIAL_OF_SERVICE": 0.10,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.95,
+        },
+        "CADC_ANOMALY_SUSPECTED": {
+            "RF_JAMMING_DISRUPTION": 0.08,
+            "COMMAND_SPOOFING_TAKEOVER": 0.20,
+            "RESOURCE_DENIAL_OF_SERVICE": 0.10,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.92,
         },
         # Multi-step chain conditionals: P(intent | threat_A → threat_B)
         # These capture correlated multi-vector attack campaigns.
+        "CADC_ANOMALY_SUSPECTED+TELECOMMAND_INJECTION_SUSPECTED": {
+            "RF_JAMMING_DISRUPTION": 0.05,
+            "COMMAND_SPOOFING_TAKEOVER": 0.15,
+            "RESOURCE_DENIAL_OF_SERVICE": 0.08,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.98,
+        },
         "RF_JAMMING_SUSPECTED+GPS_SPOOFING_SUSPECTED": {
             "RF_JAMMING_DISRUPTION": 0.40,
             "COMMAND_SPOOFING_TAKEOVER": 0.92,   # Jamming → Spoofing strongly indicates takeover
             "RESOURCE_DENIAL_OF_SERVICE": 0.15,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.10,
         },
         "GPS_SPOOFING_SUSPECTED+RESOURCE_DOS_SUSPECTED": {
             "RF_JAMMING_DISRUPTION": 0.10,
             "COMMAND_SPOOFING_TAKEOVER": 0.75,
             "RESOURCE_DENIAL_OF_SERVICE": 0.85,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.12,
         },
         "RF_JAMMING_SUSPECTED+RESOURCE_DOS_SUSPECTED": {
             "RF_JAMMING_DISRUPTION": 0.70,
             "COMMAND_SPOOFING_TAKEOVER": 0.25,
             "RESOURCE_DENIAL_OF_SERVICE": 0.88,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.10,
         },
         "RF_JAMMING_SUSPECTED+GPS_SPOOFING_SUSPECTED+RESOURCE_DOS_SUSPECTED": {
             "RF_JAMMING_DISRUPTION": 0.60,
             "COMMAND_SPOOFING_TAKEOVER": 0.90,
             "RESOURCE_DENIAL_OF_SERVICE": 0.92,
+            "PROTOCOL_TELECOMMAND_INJECTION": 0.15,
         },
     }
 
@@ -127,7 +154,7 @@ class BayesianIntentInference:
         Returns:
             Dict mapping intent categories to posterior probability scores.
         """
-        intents = ["RF_JAMMING_DISRUPTION", "COMMAND_SPOOFING_TAKEOVER", "RESOURCE_DENIAL_OF_SERVICE"]
+        intents = ["RF_JAMMING_DISRUPTION", "COMMAND_SPOOFING_TAKEOVER", "RESOURCE_DENIAL_OF_SERVICE", "PROTOCOL_TELECOMMAND_INJECTION"]
         
         if not observed_threats:
             return {intent: 0.10 for intent in intents}
@@ -183,6 +210,7 @@ class AttackIntentionModeling(BaseStage):
         jamming_score = 0.10
         spoofing_score = 0.05
         dos_score = 0.10
+        tc_injection_score = 0.05
 
         # Check graph nodes and edges for threat indicators
         threat_nodes = [
@@ -199,6 +227,8 @@ class AttackIntentionModeling(BaseStage):
                 spoofing_score = max(spoofing_score, 0.88)
             elif subtype == "RESOURCE_EXHAUSTION" or "RESOURCE" in threat_node:
                 dos_score = max(dos_score, 0.95)
+            elif subtype == "TELECOMMAND_INJECTION" or "TELECOMMAND" in threat_node or "CADC" in threat_node:
+                tc_injection_score = max(tc_injection_score, 0.95)
 
         # Fallback to S_t vector indicators if graph has no threat nodes
         if "RF_JAMMING_SUSPECTED" in s_t.active_threats or s_t.C < 0.5:
@@ -207,11 +237,15 @@ class AttackIntentionModeling(BaseStage):
             spoofing_score = max(spoofing_score, 0.85)
         if "RESOURCE_DOS_SUSPECTED" in s_t.active_threats or s_t.E < 0.2:
             dos_score = max(dos_score, 0.95)
+        # OPSSAT-AD: Telecommand injection via buffer spikes or CADC channel anomalies
+        if "TELECOMMAND_INJECTION_SUSPECTED" in s_t.active_threats or "CADC_ANOMALY_SUSPECTED" in s_t.active_threats or s_t.A < 0.50:
+            tc_injection_score = max(tc_injection_score, 0.95)
 
         return {
             "RF_JAMMING_DISRUPTION": round(jamming_score, 4),
             "COMMAND_SPOOFING_TAKEOVER": round(spoofing_score, 4),
             "RESOURCE_DENIAL_OF_SERVICE": round(dos_score, 4),
+            "PROTOCOL_TELECOMMAND_INJECTION": round(tc_injection_score, 4),
         }
 
     def _inference_engine_slot(self, s_t: StateVectorData, ctig: CTIGOutput) -> AIMOutput:
@@ -224,7 +258,7 @@ class AttackIntentionModeling(BaseStage):
         This fusion strategy satisfies the paper's requirement for "Bayesian/ML
         models" predicting threat actor objectives beyond isolated classification.
         """
-        categories = ["RF_JAMMING_DISRUPTION", "COMMAND_SPOOFING_TAKEOVER", "RESOURCE_DENIAL_OF_SERVICE"]
+        categories = ["RF_JAMMING_DISRUPTION", "COMMAND_SPOOFING_TAKEOVER", "RESOURCE_DENIAL_OF_SERVICE", "PROTOCOL_TELECOMMAND_INJECTION"]
         intentions = {}
 
         # Source 1: Structural graph heuristic scores

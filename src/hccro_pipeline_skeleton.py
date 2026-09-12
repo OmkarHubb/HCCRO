@@ -3,5 +3,6 @@ HCCRO Pipeline Skeleton — 8-Stage Cognitive Architecture Pipeline Execution Co
 """
 
 from src.core.orchestrator import HCCROOrchestrator
+from src.data.opsat_parser import RealWorldOPSSATParser
 
-__all__ = ["HCCROOrchestrator"]
+__all__ = ["HCCROOrchestrator", "RealWorldOPSSATParser"]

@@ -42,6 +42,8 @@ class SelfHealingActuator:
             "SWITCH_TO_INERTIAL_NAV_FALLBACK",
             "KILL_DoS_PROCESS",
             "ENFORCE_PROCESS_QUOTA_ISOLATION",
+            "PURGE_MALICIOUS_APID_QUEUE",
+            "REVERT_TO_SAFE_TC_KEY_STORE",
             "MIGRATE_TASK",
             "TRANSITION_PACE_EMERGENCY_SAFE_MODE",
             "ISOLATE_COMPROMISED_NODE",
@@ -104,6 +106,20 @@ class SelfHealingActuator:
                 e_val = min(1.0, e_val + 0.3)
                 m_val = min(1.0, m_val + 0.2)
                 logger.info("[SelfHealingActuator] Task Migration applied: Payload computing offloaded to healthy peer.")
+
+            elif action == "PURGE_MALICIOUS_APID_QUEUE":
+                # OPSSAT-AD: Clears corrupted telecommand APID queues, restores C and A
+                c_val = 1.0
+                a_val = 1.0
+                remaining_threats = [th for th in remaining_threats if th != "TELECOMMAND_INJECTION_SUSPECTED"]
+                logger.info("[SelfHealingActuator] PURGE_MALICIOUS_APID_QUEUE applied: Restored C=1.0, A=1.0.")
+
+            elif action == "REVERT_TO_SAFE_TC_KEY_STORE":
+                # OPSSAT-AD: Restores verified cryptographic telecommand keys, restores T and E
+                t_val = 1.0
+                e_val = 1.0
+                remaining_threats = [th for th in remaining_threats if th != "CADC_ANOMALY_SUSPECTED"]
+                logger.info("[SelfHealingActuator] REVERT_TO_SAFE_TC_KEY_STORE applied: Restored T=1.0, E=1.0.")
 
         return StateVectorData(
             C=round(c_val, 4),

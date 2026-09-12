@@ -1,0 +1,121 @@
+{
+  "evaluation_metadata": {
+    "harness_version": "1.0.0",
+    "execution_timestamp": "2026-09-12T10:46:18+0530",
+    "total_execution_time_seconds": 112.0756,
+    "datasets_evaluated": [
+      "ESA OPSSAT-AD (data/processed/dataset.csv)",
+      "Mendeley GNSS (data/raw/satelliteInfomation21.json + pvtSolution21.json)"
+    ],
+    "python_version": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+    "framework": "HCCRO 8-Stage Cognitive Cyber Resilience Optimization"
+  },
+  "dataset_summary": {
+    "opssat_total_segments": 2123,
+    "opssat_anomaly_segments": 434,
+    "opssat_nominal_segments": 1689,
+    "opssat_channels": [
+      "CADC0884",
+      "CADC0890",
+      "CADC0886",
+      "CADC0894",
+      "CADC0888",
+      "CADC0874",
+      "CADC0892",
+      "CADC0873",
+      "CADC0872"
+    ],
+    "gnss_campaign": {
+      "total_epochs": 3600,
+      "mean_trust_T_t": 0.3579,
+      "min_trust_T_t": 0.2625,
+      "mean_resilience": 0.7637,
+      "mean_e2e_latency_ms": 42.1469,
+      "threat_epochs": 3600,
+      "peak_drift_meters": 7.2562
+    }
+  },
+  "confusion_matrix": {
+    "true_positives": 434,
+    "true_negatives": 1689,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "traditional_cybersecurity_metrics": {
+    "detection_accuracy": 1.0,
+    "precision": 1.0,
+    "recall_sensitivity": 1.0,
+    "f1_score": 1.0,
+    "false_positive_rate_FPR": 0.0,
+    "false_negative_rate_FNR": 0.0,
+    "roc_auc": 1.0,
+    "mttd_ms": 18.4503,
+    "mttr_ms": 0.0588,
+    "mttrc_ms": 0.2867,
+    "network_throughput_segments_per_sec": 18.9426,
+    "packet_delivery_ratio_PDR": 1.0,
+    "communication_latency_ms": 7.9073,
+    "end_to_end_delay_ms": 52.7153,
+    "energy_cpu_seconds_per_1000_epochs": 114.5637,
+    "computational_complexity": {
+      "big_o_per_epoch": "O(N * S) where N=7 dimensions, S=8 stages",
+      "estimated_flops_per_optimization_step": 175,
+      "total_flops_campaign": 2972200
+    },
+    "resource_utilization": {
+      "mean_cpu_percent": 89.59,
+      "peak_cpu_percent": 97.0,
+      "mean_ram_mb": 174.34,
+      "peak_ram_mb": 175.13,
+      "delta_ram_mb": 6.04
+    },
+    "trust_score_mean_T_t": 0.752345,
+    "mission_completion_rate": 0.482336
+  },
+  "novel_hccro_resilience_metrics": {
+    "MCI_mission_continuity_index": 0.083646,
+    "MCI_overall": 0.554535,
+    "CRI_cyber_resilience_index": 0.689009,
+    "TPA_threat_prediction_accuracy": 1.0,
+    "MIPE_mission_impact_prediction_error": 0.018733,
+    "ROG_resilience_optimization_gain": {
+      "vs_heuristic_rule_baseline_pct": -26.0675,
+      "vs_unconstrained_baseline_pct": -26.6785,
+      "hccro_mci": 0.554535,
+      "heuristic_baseline_mci": 0.750056,
+      "unconstrained_baseline_mci": 0.756306
+    },
+    "ACE_attack_containment_efficiency": 1.0,
+    "DRE_distributed_recovery_efficiency": 1.0,
+    "KER_knowledge_evolution_rate": 0.076653,
+    "ADS_adaptive_decision_stability": 0.017958,
+    "ADS_weight_variances": {
+      "alpha_R": 0.0,
+      "beta_M": 0.00359143,
+      "gamma_T": 0.05854932,
+      "delta_C": 0.00162637,
+      "lambda_H": 0.02602192
+    },
+    "CSS_constellation_survivability_score": 1.0
+  },
+  "baseline_comparison": {
+    "heuristic_rule_baseline": {
+      "mean_utility": 0.750056,
+      "description": "Fixed IF-THEN rules, no optimization or intent modeling"
+    },
+    "unconstrained_baseline": {
+      "mean_utility": 0.756306,
+      "description": "Multi-objective optimization without physical constraints"
+    }
+  },
+  "stage_timing_breakdown": {
+    "stage1_ingestion_mean_ms": 0.0007,
+    "stage3_detection_mean_ms": 18.4503,
+    "stage7_actuator_mean_ms": 0.0588,
+    "end_to_end_mean_ms": 52.7153,
+    "end_to_end_p50_ms": 46.1574,
+    "end_to_end_p95_ms": 111.4702,
+    "end_to_end_p99_ms": 137.6343,
+    "end_to_end_max_ms": 184.2757
+  }
+}

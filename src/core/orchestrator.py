@@ -5,7 +5,8 @@ Sequentially connects and executes the 8 stages of cognitive cyber resilience op
 using standardized interfaces (BaseStage) and strongly typed dataclass artifacts.
 
 Includes a functional 5-tick simulation dashboard in `if __name__ == '__main__':`
-evaluating Nominal, Jamming, Spoofing, DoS, and Self-Healed recovery ticks.
+evaluating Nominal, Jamming, Spoofing, Protocol Telecommand Injection / DoS,
+and Self-Healed recovery ticks.
 """
 
 import time
